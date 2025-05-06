@@ -42,7 +42,7 @@ manual_state = {
 }
 
 # CSV setup: combined file
-csv_file = open('torcs_combined_data.csv', mode='a', newline='')
+csv_file = open('Dirt 1 (DT).csv', mode='a', newline='')
 csv_writer = csv.writer(csv_file)
 
 # Write header once

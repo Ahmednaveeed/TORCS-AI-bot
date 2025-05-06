@@ -122,8 +122,8 @@
         <attstr name="Speed Limiter" val="-"/>
         <attstr name="up shift" val="e"/>
         <attstr name="down shift" val="q"/>
-        <attstr name="reverse gear" val="r"/>
         <attstr name="neutral gear" val="n"/>
+        <attstr name="reverse gear" val="r"/>
       </section>
 
       <section name="2">
