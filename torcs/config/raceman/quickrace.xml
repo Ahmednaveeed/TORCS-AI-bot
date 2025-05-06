@@ -47,7 +47,7 @@
 
   <section name="Drivers">
     <attnum name="maximum number" val="40"/>
-    <attnum name="focused idx" val="2"/>
+    <attnum name="focused idx" val="8"/>
     <attstr name="focused module" val="berniw"/>
     <section name="1">
       <attnum name="idx" val="0"/>
