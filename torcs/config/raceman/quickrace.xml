@@ -13,8 +13,8 @@
   <section name="Tracks">
     <attnum name="maximum number" val="1"/>
     <section name="1">
-      <attstr name="name" val="eroad"/>
-      <attstr name="category" val="road"/>
+      <attstr name="name" val="dirt-2"/>
+      <attstr name="category" val="dirt"/>
     </section>
 
   </section>
@@ -33,7 +33,7 @@
     <attstr name="display mode" val="normal"/>
     <attstr name="display results" val="yes"/>
     <attstr name="restart" val="yes"/>
-    <attnum name="laps" val="2"/>
+    <attnum name="laps" val="4"/>
     <section name="Starting Grid">
       <attnum name="rows" val="2"/>
       <attnum name="distance to start" val="25"/>
@@ -121,13 +121,33 @@
     </section>
 
     <section name="2">
-      <attstr name="module" val="human"/>
-      <attnum name="idx" val="1"/>
+      <attstr name="module" val="berniw"/>
+      <attnum name="idx" val="2"/>
     </section>
 
     <section name="3">
       <attstr name="module" val="berniw"/>
-      <attnum name="idx" val="2"/>
+      <attnum name="idx" val="8"/>
+    </section>
+
+    <section name="4">
+      <attstr name="module" val="berniw2"/>
+      <attnum name="idx" val="1"/>
+    </section>
+
+    <section name="5">
+      <attstr name="module" val="berniw2"/>
+      <attnum name="idx" val="6"/>
+    </section>
+
+    <section name="6">
+      <attstr name="module" val="berniw3"/>
+      <attnum name="idx" val="3"/>
+    </section>
+
+    <section name="7">
+      <attstr name="module" val="human"/>
+      <attnum name="idx" val="1"/>
     </section>
 
   </section>

@@ -42,7 +42,7 @@ manual_state = {
 }
 
 # CSV setup: combined file
-csv_file = open('Wheel_2(RT).csv', mode='a', newline='')
+csv_file = open('DT_Dirt2.csv', mode='a', newline='')
 csv_writer = csv.writer(csv_file)
 
 # Write header once
