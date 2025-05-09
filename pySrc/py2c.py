@@ -41,16 +41,15 @@ manual_state = {
     "accel": 0.0, "brake": 0.0, "gear": 1, "steer": 0.0, "clutch": 0.0, "focus": 0, "meta": 0
 }
 
-# CSV setup: combined file
-csv_file = open('DT_Dirt2.csv', mode='a', newline='')
+# CSV setup
+csv_file = open('OT_g-speedway.csv', mode='a', newline='')
 csv_writer = csv.writer(csv_file)
 
-# Write header once
+# Write header
 csv_writer.writerow([
-    "angle", "curLapTime", "damage", "distFromStart", "distRaced", "fuel", "gear", "lastLapTime",
-    "racePos", "rpm", "speedX", "speedY", "speedZ", "trackPos", "z", "opponents",
-    "steer", "accel", "brake", "gear_act"
-])
+    "angle", "curLapTime", "damage", "distFromStart", "distRaced", "fuel", "gear",
+    "lastLapTime", "racePos", "rpm", "speedX", "speedY", "speedZ", "trackPos", "z", "opponents"
+] + [f"track{i}" for i in range(19)] + ["steer", "accel", "brake", "gear_act"])
 
 def build_send_string(state):
     return "".join(f"({key} {value})" for key, value in state.items())
@@ -73,7 +72,7 @@ def parse_received_data(buf):
             parsed_data[key] = values
     return parsed_data
 
-# Manual control handling
+# Manual control
 def on_press(key):
     try:
         if key.char == 'w': manual_state["accel"] = 0.5
@@ -127,7 +126,7 @@ while not shutdownClient:
 
         parsed_data = parse_received_data(buf)
 
-        # Get actuator values (manual or auto)
+        # Actuator values
         if manual_mode:
             actuator_data = [
                 manual_state["steer"], manual_state["accel"],
@@ -139,11 +138,16 @@ while not shutdownClient:
                 d.control.getBrake(), d.control.getGear()
             ]
 
-        # Combine sensor + actuator data
+        # Track edge sensors
+        track_edges = parsed_data.get("track", [0.0]*19)
+        if isinstance(track_edges, (float, int)):  # Handle bad parse fallback
+            track_edges = [0.0]*19
+
+        # Final row = sensors + track edges + actuators
         row = [parsed_data.get(k, 0) for k in [
             "angle", "curLapTime", "damage", "distFromStart", "distRaced", "fuel", "gear",
             "lastLapTime", "racePos", "rpm", "speedX", "speedY", "speedZ", "trackPos", "z", "opponents"
-        ]] + actuator_data
+        ]] + track_edges + actuator_data
 
         csv_writer.writerow(row)
 
