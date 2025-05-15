@@ -20,4 +20,14 @@ class CarControl(object):
         self.focus = focus
         self.meta = meta
     
-  
+    def toMsg(self):
+        '''
+        Convert control parameters to a string message for TORCS
+        '''
+        self.actions = {
+            'accel': [self.accel],
+            'brake': [self.brake],
+            'gear': [self.gear],
+            'steer': [self.steer]
+        }
+        return self.parser.stringify(self.actions)

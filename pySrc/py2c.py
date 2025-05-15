@@ -1,11 +1,21 @@
 import sys
 import argparse
 import socket
-import driver
 import time
 import csv
 from pynput import keyboard
 import re
+import os
+import logging
+
+# Suppress TensorFlow logs before any TensorFlow imports
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress INFO, WARNING, ERROR
+logging.getLogger('tensorflow').setLevel(logging.FATAL)  # Only FATAL logs
+logging.getLogger('absl').setLevel(logging.FATAL)  # Suppress absl warnings
+
+# Now import driver (which imports TensorFlow)
+import driver
 
 # Argument parser setup
 parser = argparse.ArgumentParser(description='Python client to connect to the TORCS SCRC server.')
@@ -42,14 +52,17 @@ manual_state = {
 }
 
 # CSV setup
-csv_file = open('RT_Etrack3.csv', mode='a', newline='')
+csv_file = open('DirtTrack.csv', mode='a', newline='')
 csv_writer = csv.writer(csv_file)
 
-# Write header
+# Write header matching dataset format
 csv_writer.writerow([
-    "angle", "curLapTime", "damage", "distFromStart", "distRaced", "fuel", "gear",
-    "lastLapTime", "racePos", "rpm", "speedX", "speedY", "speedZ", "trackPos", "z", "opponents"
-] + [f"track{i}" for i in range(19)] + ["steer", "accel", "brake", "gear_act"])
+    'Angle', 'CurrentLapTime', 'Damage', 'DistanceFromStart', 'DistanceCovered', 'FuelLevel', 'Gear',
+    'LastLapTime', 'RacePosition', 'RPM', 'SpeedX', 'SpeedY', 'SpeedZ', 'TrackPosition', 'Z'
+] + [f'Opponent_{i+1}' for i in range(36)] + [f'Track_{i+1}' for i in range(19)] + [
+    'WheelSpinVelocity_1', 'WheelSpinVelocity_2', 'WheelSpinVelocity_3', 'WheelSpinVelocity_4',
+    'Acceleration', 'Braking', 'Clutch', 'Steering'
+])
 
 def build_send_string(state):
     return "".join(f"({key} {value})" for key, value in state.items())
@@ -57,10 +70,9 @@ def build_send_string(state):
 def parse_received_data(buf):
     buf = buf.strip().strip('()\x00')
     data = re.findall(r'\(([^)]+)\)', buf)
-
     parsed_data = {}
     for item in data:
-        parts = item.split(' ')
+        parts = item.split()
         key = parts[0]
         values = parts[1:]
         try:
@@ -77,8 +89,8 @@ def on_press(key):
     try:
         if key.char == 'w': manual_state["accel"] = 0.5
         elif key.char == 's': manual_state["brake"] = 0.5
-        elif key.char == 'a': manual_state["steer"] = -0.1
-        elif key.char == 'd': manual_state["steer"] = 0.1
+        elif key.char == 'a': manual_state["steer"] = 0.1
+        elif key.char == 'd': manual_state["steer"] = -0.1
         elif key.char == 'q': manual_state["gear"] -= 1
         elif key.char == 'e': manual_state["gear"] += 1
         elif key.char == 'r':
@@ -130,28 +142,49 @@ while not shutdownClient:
         if manual_mode:
             actuator_data = [
                 manual_state["steer"], manual_state["accel"],
-                manual_state["brake"], manual_state["gear"]
+                manual_state["brake"], manual_state["clutch"]
             ]
         else:
+            response = d.drive(buf)
             actuator_data = [
-                d.control.getSteer(), d.control.getAccel(),
-                d.control.getBrake(), d.control.getGear()
+                d.control.steer, d.control.accel,
+                d.control.brake, d.control.clutch
             ]
 
-        # Track edge sensors
-        track_edges = parsed_data.get("track", [0.0]*19)
-        if isinstance(track_edges, (float, int)):  # Handle bad parse fallback
-            track_edges = [0.0]*19
+        # Opponents and track edge sensors
+        opponents = parsed_data.get("opponents", [1.0] * 36)
+        track_edges = parsed_data.get("track", [0.0] * 19)
+        wheel_spin = parsed_data.get("wheelSpinVel", [0.0] * 4)
+        if len(opponents) != 36:
+            opponents = [1.0] * 36
+        if len(track_edges) != 19:
+            track_edges = [0.0] * 19
+        if len(wheel_spin) != 4:
+            wheel_spin = [0.0] * 4
 
-        # Final row = sensors + track edges + actuators
-        row = [parsed_data.get(k, 0) for k in [
-            "angle", "curLapTime", "damage", "distFromStart", "distRaced", "fuel", "gear",
-            "lastLapTime", "racePos", "rpm", "speedX", "speedY", "speedZ", "trackPos", "z", "opponents"
-        ]] + track_edges + actuator_data
+        # Final row = sensors + opponents + track + wheel spin + actuators
+        row = [
+            parsed_data.get("angle", 0.0),
+            parsed_data.get("curLapTime", 0.0),
+            parsed_data.get("damage", 0.0),
+            parsed_data.get("distFromStart", 0.0),
+            parsed_data.get("distRaced", 0.0),
+            parsed_data.get("fuel", 0.0),
+            parsed_data.get("gear", 0),
+            parsed_data.get("lastLapTime", 0.0),
+            parsed_data.get("racePos", 0),
+            parsed_data.get("rpm", 0.0),
+            parsed_data.get("speedX", 0.0),
+            parsed_data.get("speedY", 0.0),
+            parsed_data.get("speedZ", 0.0),
+            parsed_data.get("trackPos", 0.0),
+            parsed_data.get("z", 0.0)
+        ] + opponents + track_edges + wheel_spin + actuator_data
 
         csv_writer.writerow(row)
 
-        response = build_send_string(manual_state) if manual_mode else d.drive(buf)
+        response = build_send_string(manual_state) if manual_mode else response
+        print(f"Sending to TORCS: {response}")  # Log the response
         sock.sendto(response.encode(), (arguments.host_ip, arguments.host_port))
 
     curEpisode += 1
